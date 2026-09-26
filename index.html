@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<title>نظام إدارة الأوردرات والدليفري</title>
+<meta name="theme-color" content="#0F766E" />
+<meta name="description" content="نظام سريع وسهل لإدارة أوردرات المحل والدليفري" />
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="assets/icon-192.png" />
+
+<!-- أيقونات خفيفة -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<!-- ============ حاوية الإشعارات (Toast) ============ -->
+<div id="toastContainer" class="toast-container"></div>
+
+<!-- ============ الهيكل العام: قائمة جانبية + محتوى ============ -->
+<div class="app-shell">
+
+  <!-- ---------- القائمة الجانبية (Desktop) / شريط سفلي (Mobile) ---------- -->
+  <nav class="sidenav" id="sidenav">
+    <div class="brand">
+      <i class="fa-solid fa-truck-fast"></i>
+      <span>إدارة الأوردرات</span>
+    </div>
+    <button class="nav-item active" data-view="dashboard">
+      <i class="fa-solid fa-gauge-high"></i><span>الرئيسية</span>
+    </button>
+    <button class="nav-item" data-view="orders">
+      <i class="fa-solid fa-box"></i><span>الأوردرات</span>
+    </button>
+    <button class="nav-item" data-view="delivery">
+      <i class="fa-solid fa-motorcycle"></i><span>الدليفري</span>
+    </button>
+    <button class="nav-item" data-view="delivery-accounts">
+      <i class="fa-solid fa-file-invoice-dollar"></i><span>حسابات الدليفري</span>
+    </button>
+    <button class="nav-item" data-view="settings">
+      <i class="fa-solid fa-gear"></i><span>الإعدادات</span>
+    </button>
+  </nav>
+
+  <!-- ---------- المحتوى الرئيسي ---------- -->
+  <main class="main-content">
+
+    <!-- ===================== صفحة 1: الداشبورد ===================== -->
+    <section class="view" id="view-dashboard">
+      <header class="view-header">
+        <h1>لوحة التحكم</h1>
+        <div class="date-picker-wrap">
+          <label for="dashboardDate"><i class="fa-regular fa-calendar"></i></label>
+          <input type="date" id="dashboardDate" />
+        </div>
+      </header>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon icon-blue"><i class="fa-solid fa-boxes-stacked"></i></div>
+          <div class="stat-info"><span class="stat-value" id="statTotalOrders">0</span><span class="stat-label">إجمالي أوردرات اليوم</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon icon-orange"><i class="fa-solid fa-bell"></i></div>
+          <div class="stat-info"><span class="stat-value" id="statNew">0</span><span class="stat-label">أوردرات جديدة</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon icon-purple"><i class="fa-solid fa-clock"></i></div>
+          <div class="stat-info"><span class="stat-value" id="statPreparing">0</span><span class="stat-label">جاري التجهيز</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon icon-teal"><i class="fa-solid fa-circle-check"></i></div>
+          <div class="stat-info"><span class="stat-value" id="statReady">0</span><span class="stat-label">أوردرات جاهزة</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon icon-yellow"><i class="fa-solid fa-motorcycle"></i></div>
+          <div class="stat-info"><span class="stat-value" id="statWithDelivery">0</span><span class="stat-label">مع الدليفري</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon icon-green"><i class="fa-solid fa-flag-checkered"></i></div>
+          <div class="stat-info"><span class="stat-value" id="statDelivered">0</span><span class="stat-label">تم التسليم</span></div>
+        </div>
+      </div>
+
+      <div class="summary-box">
+        <div class="summary-row">
+          <span class="summary-label"><i class="fa-solid fa-sack-dollar"></i> إجمالي قيمة الأوردرات</span>
+          <span class="summary-value" id="sumTotalInvoices">0 جنيه</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label"><i class="fa-solid fa-motorcycle"></i> إجمالي خدمات الدليفري</span>
+          <span class="summary-value minus" id="sumTotalFees">0 جنيه</span>
+        </div>
+        <div class="summary-row total">
+          <span class="summary-label"><i class="fa-solid fa-wallet"></i> الصافي</span>
+          <span class="summary-value" id="sumNet">0 جنيه</span>
+        </div>
+      </div>
+
+      <button class="fab" id="btnQuickAddDashboard" title="إضافة أوردر جديد">
+        <i class="fa-solid fa-plus"></i>
+      </button>
+    </section>
+
+    <!-- ===================== صفحة 2: الأوردرات ===================== -->
+    <section class="view hidden" id="view-orders">
+      <header class="view-header">
+        <h1>الأوردرات</h1>
+        <button class="btn btn-primary" id="btnAddOrder">
+          <i class="fa-solid fa-plus"></i> إضافة أوردر
+        </button>
+      </header>
+
+      <div class="toolbar">
+        <div class="search-box">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="searchInput" placeholder="ابحث بالاسم، الهاتف، العمارة، المنطقة، رقم الأوردر..." />
+        </div>
+        <select id="statusFilter" class="select-filter">
+          <option value="الكل">كل الحالات</option>
+        </select>
+      </div>
+
+      <!-- شريط إجراء جماعي يظهر عند تحديد أوردرات -->
+      <div class="bulk-bar hidden" id="bulkBar">
+        <span id="bulkCount">تم تحديد 0 أوردر</span>
+        <button class="btn btn-secondary" id="btnAssignDelivery">
+          <i class="fa-solid fa-motorcycle"></i> تسليم للدليفري
+        </button>
+        <button class="btn btn-ghost" id="btnClearSelection">إلغاء التحديد</button>
+      </div>
+
+      <!-- جدول للكمبيوتر -->
+      <div class="table-wrap">
+        <table class="orders-table" id="ordersTable">
+          <thead>
+            <tr>
+              <th><input type="checkbox" id="selectAllCheckbox" /></th>
+              <th>رقم الأوردر</th>
+              <th>العميل</th>
+              <th>الهاتف</th>
+              <th>العنوان</th>
+              <th>تفاصيل الأوردر</th>
+              <th>المبلغ</th>
+              <th>الدليفري</th>
+              <th>الحالة</th>
+              <th>الوقت</th>
+              <th>إجراءات</th>
+            </tr>
+          </thead>
+          <tbody id="ordersTableBody"></tbody>
+        </table>
+      </div>
+
+      <!-- بطاقات للموبايل -->
+      <div class="orders-cards" id="ordersCards"></div>
+
+      <div class="empty-state hidden" id="ordersEmptyState">
+        <i class="fa-regular fa-folder-open"></i>
+        <p>لا توجد أوردرات مطابقة</p>
+      </div>
+    </section>
+
+    <!-- ===================== صفحة 3: الدليفري ===================== -->
+    <section class="view hidden" id="view-delivery">
+      <header class="view-header">
+        <h1>أفراد الدليفري</h1>
+        <button class="btn btn-primary" id="btnAddDeliveryPerson">
+          <i class="fa-solid fa-plus"></i> إضافة دليفري
+        </button>
+      </header>
+
+      <div class="delivery-grid" id="deliveryGrid"></div>
+      <div class="empty-state hidden" id="deliveryEmptyState">
+        <i class="fa-regular fa-user"></i>
+        <p>لا يوجد أفراد دليفري بعد</p>
+      </div>
+    </section>
+
+    <!-- ===================== صفحة 4: حسابات الدليفري ===================== -->
+    <section class="view hidden" id="view-delivery-accounts">
+      <header class="view-header">
+        <h1>حسابات الدليفري</h1>
+        <div class="date-picker-wrap">
+          <label for="deliveryAccountsDate"><i class="fa-regular fa-calendar"></i></label>
+          <input type="date" id="deliveryAccountsDate" />
+        </div>
+      </header>
+
+      <div class="delivery-accounts-list" id="deliveryAccountsList"></div>
+      <div class="empty-state hidden" id="deliveryAccountsEmptyState">
+        <i class="fa-regular fa-chart-bar"></i>
+        <p>لا توجد بيانات لهذا اليوم</p>
+      </div>
+    </section>
+
+    <!-- ===================== صفحة 5: الإعدادات ===================== -->
+    <section class="view hidden" id="view-settings">
+      <header class="view-header">
+        <h1>الإعدادات</h1>
+      </header>
+
+      <div class="settings-card">
+        <h3><i class="fa-solid fa-coins"></i> سعر خدمة الدليفري</h3>
+        <p class="hint">هذا المبلغ يُستخدم تلقائيًا عند تسليم أي أوردر لدليفري (لكل أوردر)</p>
+        <div class="settings-row">
+          <input type="number" id="deliveryFeeInput" min="0" step="0.5" />
+          <span>جنيه لكل أوردر</span>
+          <button class="btn btn-primary" id="btnSaveFee">حفظ</button>
+        </div>
+      </div>
+
+      <div class="settings-card">
+        <h3><i class="fa-solid fa-database"></i> النسخ الاحتياطي</h3>
+        <p class="hint">احتفظ بنسخة من بياناتك، أو استرجعها في أي وقت</p>
+        <div class="settings-row wrap">
+          <button class="btn btn-secondary" id="btnExportBackup">
+            <i class="fa-solid fa-download"></i> تصدير نسخة احتياطية
+          </button>
+          <button class="btn btn-secondary" id="btnImportBackup">
+            <i class="fa-solid fa-upload"></i> استيراد نسخة احتياطية
+          </button>
+          <input type="file" id="importFileInput" accept="application/json" class="hidden" />
+        </div>
+      </div>
+
+      <div class="settings-card danger">
+        <h3><i class="fa-solid fa-triangle-exclamation"></i> منطقة الخطر</h3>
+        <p class="hint">مسح كل البيانات التجريبية أو الحالية نهائيًا. لا يمكن التراجع عن هذا الإجراء.</p>
+        <button class="btn btn-danger" id="btnClearAll">
+          <i class="fa-solid fa-trash"></i> مسح كل البيانات
+        </button>
+      </div>
+
+      <div class="settings-card">
+        <h3><i class="fa-solid fa-circle-info"></i> عن النظام</h3>
+        <p class="hint">نظام إدارة أوردرات ودليفري — يعمل بالكامل من متصفحك بدون إنترنت، وبياناتك محفوظة على جهازك فقط.</p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- شريط تنقل سفلي للموبايل -->
+<nav class="bottom-nav" id="bottomNav">
+  <button class="bottom-nav-item active" data-view="dashboard"><i class="fa-solid fa-gauge-high"></i><span>الرئيسية</span></button>
+  <button class="bottom-nav-item" data-view="orders"><i class="fa-solid fa-box"></i><span>الأوردرات</span></button>
+  <button class="bottom-nav-item add-btn" id="btnQuickAddMobile"><i class="fa-solid fa-plus"></i></button>
+  <button class="bottom-nav-item" data-view="delivery"><i class="fa-solid fa-motorcycle"></i><span>الدليفري</span></button>
+  <button class="bottom-nav-item" data-view="settings"><i class="fa-solid fa-gear"></i><span>الإعدادات</span></button>
+</nav>
+
+<!-- ============ Modal: إضافة / تعديل أوردر ============ -->
+<div class="modal-overlay hidden" id="orderModalOverlay">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h2 id="orderModalTitle">إضافة أوردر</h2>
+      <button class="modal-close" data-close-modal="orderModalOverlay"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <form id="orderForm" class="modal-body">
+      <input type="hidden" id="orderId" />
+
+      <div class="form-section-title">بيانات العميل</div>
+      <div class="form-grid">
+        <div class="form-field">
+          <label>اسم العميل *</label>
+          <input type="text" id="fCustomerName" required autocomplete="off" />
+        </div>
+        <div class="form-field">
+          <label>رقم الهاتف *</label>
+          <input type="tel" id="fPhone" required autocomplete="off" />
+        </div>
+      </div>
+
+      <div class="form-section-title">العنوان</div>
+      <div class="form-grid">
+        <div class="form-field">
+          <label>المنطقة</label>
+          <input type="text" id="fArea" autocomplete="off" />
+        </div>
+        <div class="form-field">
+          <label>الشارع</label>
+          <input type="text" id="fStreet" autocomplete="off" />
+        </div>
+        <div class="form-field">
+          <label>اسم العمارة</label>
+          <input type="text" id="fBuildingName" autocomplete="off" />
+        </div>
+        <div class="form-field">
+          <label>رقم العمارة</label>
+          <input type="text" id="fBuildingNumber" autocomplete="off" />
+        </div>
+        <div class="form-field">
+          <label>الدور</label>
+          <input type="text" id="fFloor" autocomplete="off" />
+        </div>
+        <div class="form-field">
+          <label>رقم الشقة</label>
+          <input type="text" id="fApartment" autocomplete="off" />
+        </div>
+      </div>
+      <div class="form-field">
+        <label>تفاصيل العنوان</label>
+        <input type="text" id="fAddressDetails" placeholder="مثال: بجوار الصيدلية" autocomplete="off" />
+      </div>
+
+      <div class="form-section-title">الأوردر</div>
+      <div class="form-field">
+        <label>تفاصيل الأوردر *</label>
+        <textarea id="fOrderDetails" rows="2" required></textarea>
+      </div>
+      <div class="form-grid">
+        <div class="form-field">
+          <label>قيمة الفاتورة (جنيه) *</label>
+          <input type="number" id="fInvoiceAmount" min="0" step="0.5" required />
+        </div>
+      </div>
+      <div class="form-field">
+        <label>ملاحظات</label>
+        <textarea id="fNotes" rows="2"></textarea>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" data-close-modal="orderModalOverlay">إلغاء</button>
+        <button type="submit" class="btn btn-primary" id="btnSaveOrder">
+          <i class="fa-solid fa-check"></i> حفظ الأوردر
+        </button>
+      </div>
+
+      <label class="checkbox-row" id="quickAddAnotherRow">
+        <input type="checkbox" id="quickAddAnother" checked />
+        <span>البقاء في الشاشة لإضافة أوردر آخر بسرعة</span>
+      </label>
+    </form>
+  </div>
+</div>
+
+<!-- ============ Modal: عرض أوردر ============ -->
+<div class="modal-overlay hidden" id="viewOrderModalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>تفاصيل الأوردر</h2>
+      <button class="modal-close" data-close-modal="viewOrderModalOverlay"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body" id="viewOrderBody"></div>
+  </div>
+</div>
+
+<!-- ============ Modal: تسليم لدليفري ============ -->
+<div class="modal-overlay hidden" id="assignModalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>تسليم الأوردرات للدليفري</h2>
+      <button class="modal-close" data-close-modal="assignModalOverlay"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <p class="hint" id="assignSummaryText"></p>
+      <div class="form-field">
+        <label>اختر الدليفري</label>
+        <select id="assignDeliverySelect"></select>
+      </div>
+      <div class="assign-preview" id="assignPreview"></div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-ghost" data-close-modal="assignModalOverlay">إلغاء</button>
+      <button type="button" class="btn btn-primary" id="btnConfirmAssign">
+        <i class="fa-solid fa-check"></i> تأكيد التسليم
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ Modal: إضافة / تعديل دليفري ============ -->
+<div class="modal-overlay hidden" id="personModalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="personModalTitle">إضافة دليفري</h2>
+      <button class="modal-close" data-close-modal="personModalOverlay"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <form id="personForm" class="modal-body">
+      <input type="hidden" id="personId" />
+      <div class="form-field">
+        <label>الاسم *</label>
+        <input type="text" id="pName" required autocomplete="off" />
+      </div>
+      <div class="form-field">
+        <label>رقم الهاتف *</label>
+        <input type="tel" id="pPhone" required autocomplete="off" />
+      </div>
+      <div class="form-field">
+        <label>الحالة</label>
+        <select id="pStatus">
+          <option value="متاح">متاح</option>
+          <option value="غير متاح">غير متاح</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label>ملاحظات</label>
+        <textarea id="pNotes" rows="2"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" data-close-modal="personModalOverlay">إلغاء</button>
+        <button type="submit" class="btn btn-primary">حفظ</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============ Modal: تأكيد عام ============ -->
+<div class="modal-overlay hidden" id="confirmModalOverlay">
+  <div class="modal modal-sm">
+    <div class="modal-body confirm-body">
+      <i class="fa-solid fa-triangle-exclamation confirm-icon"></i>
+      <p id="confirmMessage">هل أنت متأكد؟</p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-ghost" data-close-modal="confirmModalOverlay">إلغاء</button>
+      <button type="button" class="btn btn-danger" id="btnConfirmAction">تأكيد</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/utils.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/orders.js"></script>
+<script src="js/delivery.js"></script>
+<script src="js/reports.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
